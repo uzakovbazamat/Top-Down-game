@@ -6,7 +6,7 @@ public class PlayerController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private PlayerInput playerInput;
-    public Animator anim;
+    [SerializeField] private Animator animator;
 
     [Header("Movement")]
     [SerializeField, Range(0f, 50f)] private float speed = 5f;
@@ -59,7 +59,7 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         UpdateFacing();
-        HandleAnimations();
+        UpdateAnimations();
     }
 
     private void FixedUpdate()
@@ -73,31 +73,41 @@ public class PlayerController : MonoBehaviour
     private void ApplyMovement()
     {
         float targetSpeed = moveInput.x * speed;
-        rb.linearVelocity = new Vector2(targetSpeed, rb.linearVelocity.y);
+
+        rb.linearVelocity = new Vector2(
+            targetSpeed,
+            rb.linearVelocity.y
+        );
     }
 
     private void ApplyJump()
     {
         if (jumpPressed && isGrounded)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            rb.linearVelocity = new Vector2(
+                rb.linearVelocity.x,
+                jumpForce
+            );
+
             jumpPressed = false;
             jumpReleased = false;
         }
 
-        if (jumpReleased)
+        if (!jumpReleased)
         {
-            // Cut jump height if the player releases the button while still rising
-            if (rb.linearVelocity.y > 0f)
-            {
-                rb.linearVelocity = new Vector2(
-                    rb.linearVelocity.x,
-                    rb.linearVelocity.y * jumpCutMultiplier
-                );
-            }
-
-            jumpReleased = false;
+            return;
         }
+
+        // Cut jump height if the player releases the button while still rising
+        if (rb.linearVelocity.y > 0f)
+        {
+            rb.linearVelocity = new Vector2(
+                rb.linearVelocity.x,
+                rb.linearVelocity.y * jumpCutMultiplier
+            );
+        }
+
+        jumpReleased = false;
     }
 
     private void ApplyVariableGravity()
@@ -135,15 +145,25 @@ public class PlayerController : MonoBehaviour
         );
     }
 
-    void HandleAnimations()
+    private void UpdateAnimations()
     {
-        anim.SetBool("isJumping", rb.linearVelocity.y > .1f);
-        anim.SetBool("isGrounded", isGrounded);
+        if (!animator)
+        {
+            return;
+        }
 
-        anim.SetFloat("yVelocity", rb.linearVelocity.y);
+        float verticalSpeed = rb.linearVelocity.y;
+        float horizontalSpeed = Mathf.Abs(moveInput.x);
 
-        anim.SetBool("isIdle", Mathf.Abs(moveInput.x) < .1f && isGrounded);
-        anim.SetBool("isWalking", Mathf.Abs(moveInput.x) > .1f && isGrounded);
+        animator.SetBool("isJumping", verticalSpeed > 0.1f);
+        animator.SetBool("isGrounded", isGrounded);
+        animator.SetFloat("yVelocity", verticalSpeed);
+
+        bool isIdle = horizontalSpeed < 0.1f && isGrounded;
+        bool isWalking = horizontalSpeed > 0.1f && isGrounded;
+
+        animator.SetBool("isIdle", isIdle);
+        animator.SetBool("isWalking", isWalking);
     }
 
     private void UpdateFacing()
