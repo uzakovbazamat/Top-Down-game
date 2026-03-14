@@ -6,6 +6,7 @@ public class PlayerController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private PlayerInput playerInput;
+    public Animator anim;
 
     [Header("Movement")]
     [SerializeField, Range(0f, 50f)] private float speed = 5f;
@@ -58,6 +59,7 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         UpdateFacing();
+        HandleAnimations();
     }
 
     private void FixedUpdate()
@@ -131,6 +133,17 @@ public class PlayerController : MonoBehaviour
             groundCheckRadius,
             groundLayer
         );
+    }
+
+    void HandleAnimations()
+    {
+        anim.SetBool("isJumping", rb.linearVelocity.y > .1f);
+        anim.SetBool("isGrounded", isGrounded);
+
+        anim.SetFloat("yVelocity", rb.linearVelocity.y);
+
+        anim.SetBool("isIdle", Mathf.Abs(moveInput.x) < .1f && isGrounded);
+        anim.SetBool("isWalking", Mathf.Abs(moveInput.x) > .1f && isGrounded);
     }
 
     private void UpdateFacing()
