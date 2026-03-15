@@ -7888,14 +7888,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1416529774}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67a0709336eb73c4e908fd72c9fbe8fb, type: 3}
+  m_Script: {fileID: 11500000, guid: 8477eb69ba47dd745a1386c6833a0a86, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   rb: {fileID: 1416529778}
   playerInput: {fileID: 1416529776}
   animator: {fileID: 435560429}
-  speed: 10
-  jumpForce: 20
+  speed: 5
+  jumpForce: 18
   jumpCutMultiplier: 0.5
   normalGravity: 1
   fallGravity: 10

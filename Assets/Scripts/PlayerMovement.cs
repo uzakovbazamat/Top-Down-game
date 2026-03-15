@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerController : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Rigidbody2D rb;
@@ -26,25 +26,25 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
 
     [Header("Facing")]
-    [SerializeField] private int facingDirection = 1;
+    [SerializeField] private float facingDirection = 1f;
 
     // Input state
     private Vector2 moveInput;
     private bool jumpPressed;
     private bool jumpReleased;
 
-    // Runtime state
+    //Runtime state 
     private bool isGrounded;
+
 
     private void Reset()
     {
         if (!rb) rb = GetComponent<Rigidbody2D>();
         if (!playerInput) playerInput = GetComponent<PlayerInput>();
-        if (!groundCheck)
+        if(!groundCheck)
         {
-            // Try to find a child named "GroundCheck" if not manually assigned
             var found = transform.Find("GroundCheck");
-            if (found != null)
+            if(found != null)
             {
                 groundCheck = found;
             }
@@ -70,25 +70,38 @@ public class PlayerController : MonoBehaviour
         ApplyJump();
     }
 
+    // Player's Movement Mechanics
+    public void OnMove(InputValue value)
+    {
+        moveInput = value.Get<Vector2>();
+    }
+
     private void ApplyMovement()
     {
         float targetSpeed = moveInput.x * speed;
 
-        rb.linearVelocity = new Vector2(
-            targetSpeed,
-            rb.linearVelocity.y
-        );
+        rb.linearVelocity = new Vector2(targetSpeed, rb.linearVelocity.y);
+    }
+
+    // Player's Jumping Mechanics
+    public void OnJump(InputValue value)
+    {
+        if (value.isPressed)
+        {
+            jumpPressed = true;
+            jumpReleased = false;
+        }
+        else
+        {
+            jumpReleased = true;
+        }
     }
 
     private void ApplyJump()
     {
         if (jumpPressed && isGrounded)
         {
-            rb.linearVelocity = new Vector2(
-                rb.linearVelocity.x,
-                jumpForce
-            );
-
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             jumpPressed = false;
             jumpReleased = false;
         }
@@ -98,38 +111,14 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Cut jump height if the player releases the button while still rising
-        if (rb.linearVelocity.y > 0f)
+        if(rb.linearVelocity.y > 0f)
         {
-            rb.linearVelocity = new Vector2(
-                rb.linearVelocity.x,
-                rb.linearVelocity.y * jumpCutMultiplier
-            );
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
         }
-
         jumpReleased = false;
     }
 
-    private void ApplyVariableGravity()
-    {
-        float verticalSpeed = rb.linearVelocity.y;
-
-        if (verticalSpeed < -0.1f)
-        {
-            // Falling
-            rb.gravityScale = fallGravity;
-        }
-        else if (verticalSpeed > 0.1f)
-        {
-            // Rising
-            rb.gravityScale = jumpGravity;
-        }
-        else
-        {
-            rb.gravityScale = normalGravity;
-        }
-    }
-
+    // Gravity Mechanics
     private void UpdateGroundedState()
     {
         if (!groundCheck)
@@ -138,16 +127,55 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        isGrounded = Physics2D.OverlapCircle(
-            groundCheck.position,
-            groundCheckRadius,
-            groundLayer
-        );
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
     }
 
+    private void ApplyVariableGravity()
+    {
+        float verticalSpeed = rb.linearVelocity.y;
+
+        if(verticalSpeed <-0.1f)
+        {
+            rb.gravityScale = fallGravity;
+        }
+        else if (verticalSpeed > 0.1f)
+        {
+            rb.gravityScale = jumpGravity;
+        }
+        else
+        {
+            rb.gravityScale = normalGravity;
+        }
+    }
+
+    // Face Flipping
+    private void UpdateFacing()
+    {
+        if (moveInput.x > 0.1f)
+        {   
+            facingDirection = 1;
+        }
+        else if (moveInput.x < -0.1f)
+        {
+            facingDirection = -1;
+        }
+
+        transform.localScale = new Vector3(facingDirection, 1f, 1f);
+    }
+
+    // Gizmos
+    private void OnDrawGizmosSelected()
+    {
+        if (!isGrounded) return;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+    }
+
+    // Animations
     private void UpdateAnimations()
     {
-        if (!animator)
+        if(!animator)
         {
             return;
         }
@@ -159,55 +187,10 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("isGrounded", isGrounded);
         animator.SetFloat("yVelocity", verticalSpeed);
 
-        bool isIdle = horizontalSpeed < 0.1f && isGrounded;
-        bool isWalking = horizontalSpeed > 0.1f && isGrounded;
+        bool isIdle = horizontalSpeed < 0.1 && isGrounded;
+        bool isWalking = horizontalSpeed > 0.1 && isGrounded;
 
         animator.SetBool("isIdle", isIdle);
         animator.SetBool("isWalking", isWalking);
-    }
-
-    private void UpdateFacing()
-    {
-        if (moveInput.x > 0.1f)
-        {
-            facingDirection = 1;
-        }
-        else if (moveInput.x < -0.1f)
-        {
-            facingDirection = -1;
-        }
-
-        transform.localScale = new Vector3(facingDirection, 1f, 1f);
-    }
-
-    #region Input Callbacks
-
-    public void OnMove(InputValue value)
-    {
-        moveInput = value.Get<Vector2>();
-    }
-
-    public void OnJump(InputValue value)
-    {
-        if (value.isPressed)
-        {
-            jumpPressed = true;
-            jumpReleased = false;
-        }
-        else
-        {
-            // Button released
-            jumpReleased = true;
-        }
-    }
-
-    #endregion
-
-    private void OnDrawGizmosSelected()
-    {
-        if (!groundCheck) return;
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
     }
 }
