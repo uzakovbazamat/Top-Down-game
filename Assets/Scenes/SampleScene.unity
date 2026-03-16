@@ -7894,7 +7894,8 @@ MonoBehaviour:
   rb: {fileID: 1416529778}
   playerInput: {fileID: 1416529776}
   animator: {fileID: 435560429}
-  speed: 5
+  walkSpeed: 5
+  runSpeed: 8
   jumpForce: 18
   jumpCutMultiplier: 0.5
   normalGravity: 1

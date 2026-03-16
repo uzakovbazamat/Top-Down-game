@@ -9,7 +9,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Animator animator;
 
     [Header("Movement")]
-    [SerializeField, Range(0f, 50f)] private float speed = 5f;
+    [SerializeField, Range(0f, 50f)] private float walkSpeed = 5f;
+    [SerializeField] private float runSpeed = 8;
 
     [Header("Jump")]
     [SerializeField] private float jumpForce = 10f;
@@ -32,6 +33,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 moveInput;
     private bool jumpPressed;
     private bool jumpReleased;
+    private bool runPressed;
 
     //Runtime state 
     private bool isGrounded;
@@ -70,7 +72,13 @@ public class PlayerMovement : MonoBehaviour
         ApplyJump();
     }
 
-    // Player's Movement Mechanics
+    // PLAYER'S RUNNING MECHANICS
+    public void OnRun(InputValue value)
+    {
+        runPressed = value.isPressed;
+    }
+
+    // PLAYER'S WALKING MECHANICS
     public void OnMove(InputValue value)
     {
         moveInput = value.Get<Vector2>();
@@ -78,12 +86,15 @@ public class PlayerMovement : MonoBehaviour
 
     private void ApplyMovement()
     {
-        float targetSpeed = moveInput.x * speed;
+        // Running 
+        float currentSpeed = runPressed ? runSpeed : walkSpeed;
+        //
 
+        float targetSpeed = moveInput.x * currentSpeed;
         rb.linearVelocity = new Vector2(targetSpeed, rb.linearVelocity.y);
     }
 
-    // Player's Jumping Mechanics
+    // PLAYER'S JUMPING MECHANICS
     public void OnJump(InputValue value)
     {
         if (value.isPressed)
@@ -118,7 +129,7 @@ public class PlayerMovement : MonoBehaviour
         jumpReleased = false;
     }
 
-    // Gravity Mechanics
+    // GRAVITY
     private void UpdateGroundedState()
     {
         if (!groundCheck)
@@ -148,7 +159,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // Face Flipping
+    // FACE FLIPPING
     private void UpdateFacing()
     {
         if (moveInput.x > 0.1f)
@@ -163,7 +174,7 @@ public class PlayerMovement : MonoBehaviour
         transform.localScale = new Vector3(facingDirection, 1f, 1f);
     }
 
-    // Gizmos
+    // GIZMOS
     private void OnDrawGizmosSelected()
     {
         if (!isGrounded) return;
@@ -172,7 +183,7 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
     }
 
-    // Animations
+    // ANIMATIONS
     private void UpdateAnimations()
     {
         if(!animator)
@@ -191,6 +202,7 @@ public class PlayerMovement : MonoBehaviour
         bool isWalking = horizontalSpeed > 0.1 && isGrounded;
 
         animator.SetBool("isIdle", isIdle);
-        animator.SetBool("isWalking", isWalking);
+        animator.SetBool("isWalking", isWalking && !runPressed);
+        animator.SetBool("isRunning", isWalking && runPressed);
     }
 }
