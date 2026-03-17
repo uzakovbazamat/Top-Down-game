@@ -3,17 +3,23 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public PlayerState currentState;
+
+    public PlayerIdleState idleState;
+    public PlayerJumpState jumpState;
+    public PlayerMoveState moveState;
+
     [Header("References")]
-    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] public Rigidbody2D rb;
     [SerializeField] private PlayerInput playerInput;
-    [SerializeField] private Animator animator;
+    [SerializeField] public Animator animator;
 
     [Header("Movement")]
-    [SerializeField, Range(0f, 50f)] private float walkSpeed = 5f;
+    [SerializeField, Range(0f, 50f)] public float walkSpeed = 5f;
 
     [Header("Jump")]
-    [SerializeField] private float jumpForce = 10f;
-    [SerializeField, Range(0f, 1f)] private float jumpCutMultiplier = 0.5f;
+    [SerializeField] public float jumpForce = 10f;
+    [SerializeField, Range(0f, 1f)] public float jumpCutMultiplier = 0.5f;
 
     [Header("Gravity")]
     [SerializeField] private float normalGravity = 1f;
@@ -26,15 +32,19 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
 
     [Header("Facing")]
-    [SerializeField] private float facingDirection = 1f;
+    [SerializeField] public float facingDirection = 1f;
+
+    [Header("Equipment")]
+    [SerializeField] private GameObject candlePrefab;
+    [SerializeField] private Transform candleAttachPoint;
 
     // Input state
-    private Vector2 moveInput;
-    private bool jumpPressed;
-    private bool jumpReleased;
+    public Vector2 moveInput;
+    public bool jumpPressed;
+    public bool jumpReleased;
 
     //Runtime state 
-    private bool isGrounded;
+    public bool isGrounded;
 
 
     private void Reset()
@@ -51,37 +61,62 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    private void Awake()
+    {
+        idleState = new PlayerIdleState(this);
+        jumpState = new PlayerJumpState(this);
+        moveState = new PlayerMoveState(this);
+    }
+
     private void Start()
     {
         rb.gravityScale = normalGravity;
+
+        SpawnCandle();
+
+        ChangeState(idleState);
     }
 
     private void Update()
     {
+        currentState.Update();
+
         UpdateFacing();
         UpdateAnimations();
     }
 
     private void FixedUpdate()
     {
+        currentState.FixedUpdate();
         UpdateGroundedState();
-        ApplyVariableGravity();
-        ApplyMovement();
-        ApplyJump();
     }
 
+    public void ChangeState(PlayerState newState)
+    {
+        if (currentState != null)
+        {
+            currentState.Exit();
+        }
+
+        currentState = newState;
+        currentState.Enter();
+    }
+
+    private void SpawnCandle()
+    {
+        if (!candlePrefab || !candleAttachPoint)
+        {
+            return;
+        }
+
+        Instantiate(candlePrefab, candleAttachPoint.position, candleAttachPoint.rotation, candleAttachPoint);
+    }
 
 
     // PLAYER'S WALKING MECHANICS
     public void OnMove(InputValue value)
     {
         moveInput = value.Get<Vector2>();
-    }
-
-    private void ApplyMovement()
-    {
-        float targetSpeed = moveInput.x * walkSpeed;
-        rb.linearVelocity = new Vector2(targetSpeed, rb.linearVelocity.y);
     }
 
     // PLAYER'S JUMPING MECHANICS
@@ -98,26 +133,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void ApplyJump()
-    {
-        if (jumpPressed && isGrounded)
-        {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-            jumpPressed = false;
-            jumpReleased = false;
-        }
-
-        if (!jumpReleased)
-        {
-            return;
-        }
-
-        if (rb.linearVelocity.y > 0f)
-        {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
-        }
-        jumpReleased = false;
-    }
 
     // GRAVITY
     private void UpdateGroundedState()
@@ -131,7 +146,7 @@ public class PlayerMovement : MonoBehaviour
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
     }
 
-    private void ApplyVariableGravity()
+    public void ApplyVariableGravity()
     {
         float verticalSpeed = rb.linearVelocity.y;
 
@@ -180,19 +195,8 @@ public class PlayerMovement : MonoBehaviour
         {
             return;
         }
-
-        float verticalSpeed = rb.linearVelocity.y;
-        float horizontalSpeed = Mathf.Abs(moveInput.x);
-
-        animator.SetBool("isJumping", verticalSpeed > 0.1f);
         animator.SetBool("isGrounded", isGrounded);
-        animator.SetFloat("yVelocity", verticalSpeed);
-
-        bool isIdle = horizontalSpeed < 0.1 && isGrounded;
-        bool isWalking = horizontalSpeed > 0.1 && isGrounded;
-
-        animator.SetBool("isIdle", isIdle);
-        animator.SetBool("isWalking", isWalking);
+        animator.SetFloat("yVelocity", rb.linearVelocity.y); 
     }
 
 }
